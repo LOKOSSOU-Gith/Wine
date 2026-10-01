@@ -1,0 +1,13 @@
+{
+  "name": "Winlator PC Edition",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "postCreateCommand": "bash cloud/setup-codespace.sh",
+  "forwardPorts": [8799],
+  "portsAttributes": {
+    "8799": { "label": "Winlator PC (API + interface)", "onAutoForward": "openBrowser" }
+  },
+  "remoteUser": "vscode"
+}

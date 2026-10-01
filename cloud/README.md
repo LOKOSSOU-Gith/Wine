@@ -20,6 +20,20 @@ Navigateur ──HTTPS──────────► Render (port unique)
 | `render.yaml` | Blueprint : build Docker, token auto, disque persistant 1 Go |
 | `.dockerignore` | Exclut `data/`, `tools/`, lanceurs Windows du contexte |
 
+## 🆓 GitHub Codespaces (gratuit, x86, sans carte bancaire)
+
+Ton compte GitHub inclut **120 h-cœur/mois** (soit ~60 h à 2 cœurs) sur des machines Ubuntu x86_64 — Wine y tourne **directement**, sans Box64.
+
+1. Ouvre [github.com/LOKOSSOU-Gith/Wine](https://github.com/LOKOSSOU-Gith/Wine) → bouton vert **Code** → onglet **Codespaces** → **Create codespace on main**.
+2. Le conteneur s'initialise tout seul (~4 min : Node 22, Wine, Xvfb, x11vnc, noVNC, préfixe préchauffé).
+3. Dans le terminal du codespace :
+   ```bash
+   bash cloud/start-codespace.sh
+   ```
+4. VS Code ouvre automatiquement l'interface sur le port 8799 (onglet **Ports** → faire clic droit → *Port Visibility → Public* pour y accéder depuis ton téléphone).
+
+Limites : le codespace **s'endort après 30 min** sans activité (relance-le, les fichiers restent), et au-delà du quota mensuel il faut un moyen de paiement. Parfait pour des sessions à la demande, pas pour du 24/7.
+
 ## 🥇 Déploiement gratuit sur Oracle Cloud (ARM Ampere A1)
 
 Le seul VPS « toujours gratuit » qui tient ce projet (2 vCPU, **12 Go RAM**).
