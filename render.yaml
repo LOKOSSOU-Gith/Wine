@@ -1,0 +1,23 @@
+# Blueprint Render — déploie Winlator PC Edition (Docker)
+# Déploiement : Render → New → Blueprint → pointer sur ce repo/dossier.
+services:
+  - type: web
+    name: winlator-pc
+    runtime: docker
+    dockerfilePath: ./cloud/Dockerfile
+    dockerContext: .
+    plan: starter          # mettre "free" pour tester (le service s'endort sans trafic)
+    healthCheckPath: /healthz
+    envVars:
+      - key: WINLATOR_TOKEN
+        generateValue: true   # mot de passe d'accès : visible dans le Dashboard → Environment
+      - key: VNC_ENABLED
+        value: "1"
+      - key: VNC_GEOMETRY
+        value: 1280x720x24
+      - key: WINEDEBUG
+        value: "-all"
+    disk:
+      name: winlator-data
+      mountPath: /app/data
+      sizeGB: 1

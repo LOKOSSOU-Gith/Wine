@@ -1,0 +1,9 @@
+# Données d'exécution (jamais versionnées)
+data/
+
+# Client noVNC cloné au build Docker
+tools/
+
+# Divers
+node_modules/
+*.log

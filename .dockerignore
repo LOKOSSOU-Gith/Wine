@@ -1,0 +1,10 @@
+# Contexte de build = dossier pc-edition (docker build -f cloud/Dockerfile .)
+data/
+tools/
+.git/
+.github/
+*.bat
+*.cmd
+*.vbs
+*.ps1
+__pycache__/

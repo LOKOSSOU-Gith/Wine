@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Winlator PC Edition</title>
+<style>
+:root{
+  --bg:#0e1116;--panel:#161b22;--panel2:#1c2330;--line:#2a3242;
+  --txt:#e6edf3;--muted:#8b98a9;--acc:#7c5cff;--acc2:#3fb950;--warn:#d29922;--err:#f85149;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:18px;font-weight:600}
+header .wine{font-size:22px}
+header .sub{color:var(--muted);font-size:12px}
+main{display:grid;grid-template-columns:340px 1fr;gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.card h2 button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+.card h2 button:hover{filter:brightness(1.15)}
+.list{max-height:46vh;overflow:auto}
+.item{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item:last-child{border-bottom:0}
+.item .name{font-weight:600}
+.item .meta{color:var(--muted);font-size:12px}
+.item .actions{display:flex;gap:6px;flex-shrink:0}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+.btn:hover{border-color:var(--acc)}
+.btn.play{background:#1a7f37;border-color:#1a7f37}
+.btn.play:hover{filter:brightness(1.2)}
+.btn.stop{background:#8b1d1d;border-color:#8b1d1d}
+.btn.small{padding:3px 8px;font-size:11px}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line)}
+.badge.native{color:var(--acc2);border-color:#1a7f37}
+.badge.wine{color:#c297ff;border-color:#7c5cff}
+.badge.run{color:var(--acc2)}
+#log{background:#0a0d12;font:12px/1.45 Consolas,monospace;padding:12px 14px;height:260px;overflow:auto;white-space:pre-wrap;color:#9fe8a9}
+form{display:grid;gap:10px;padding:14px 16px}
+form label{font-size:12px;color:var(--muted);display:grid;gap:4px}
+form input,form select,form textarea{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:8px 10px;font:inherit}
+form textarea{min-height:52px;resize:vertical}
+form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+form .submit{display:flex;gap:8px;justify-content:flex-end}
+form .submit button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:8px 16px;cursor:pointer}
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:0;max-width:560px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h3{padding:14px 18px;border-bottom:1px solid var(--line);font-size:15px}
+.toolbar{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--panel2);border:1px solid var(--acc);padding:10px 16px;border-radius:8px;display:none}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <span class="wine">🍷</span>
+  <div>
+    <h1>Winlator <span style="color:var(--acc)">PC Edition</span></h1>
+    <div class="sub">Fork desktop de Winlator-CMOD — lance vos applications Windows avec couches d'environnement, conteneurs et journaux.</div>
+  </div>
+  <button id="btnVnc" class="btn" style="margin-left:auto" title="Ouvrir l'écran distant (VNC dans le navigateur)">🖥 Écran distant</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Conteneurs <button id="btnNewContainer">+ Nouveau</button></h2>
+    <div class="list" id="containerList"><div class="empty">Aucun conteneur</div></div>
+    <h2 style="border-top:1px solid var(--line)">Applications <button id="btnNewApp">+ Ajouter</button></h2>
+    <div class="list" id="appList"><div class="empty">Aucune application</div></div>
+  </section>
+
+  <section style="display:grid;gap:16px;align-content:start">
+    <div class="card">
+      <h2>Exécutions actives</h2>
+      <div class="list" id="runList" style="max-height:20vh"><div class="empty">Rien en cours</div></div>
+    </div>
+    <div class="card">
+      <h2>Journal <span id="logTitle" style="text-transform:none;letter-spacing:0;color:var(--txt)"></span></h2>
+      <div id="log">En attente…</div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlgContainer">
+  <h3>Nouveau conteneur</h3>
+  <form id="formContainer">
+    <label>Nom<input name="name" required placeholder="Mes jeux rétro"></label>
+    <div class="row">
+      <label>Binary Wine (optionnel)<input name="wineBin" placeholder="wine"></label>
+      <label>Variable ENV (CLÉ=VALEUR, une par ligne)<textarea name="env"></textarea></label>
+    </div>
+    <div class="submit"><button type="button" class="btn" onclick="dlgContainer.close()">Annuler</button><button>Créer</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgApp">
+  <h3>Ajouter une application</h3>
+  <form id="formApp">
+    <label>Nom<input name="name" placeholder="Mon jeu"></label>
+    <label>Fichier à envoyer vers le serveur (.exe, .msi, .bat, .cmd, .zip, .7z, .rar)<input type="file" name="file" accept=".exe,.msi,.bat,.cmd,.zip,.7z,.rar"></label>
+    <label>ou Chemin existant sur le serveur<input name="exePath" placeholder="C:\\Games\\jeu\\jeu.exe"></label>
+    <div class="row">
+      <label>Arguments<input name="args" placeholder="-fullscreen"></label>
+      <label>Conteneur<select name="containerId"><option value="">— aucun —</option></select></label>
+    </div>
+    <label>Variables ENV (CLÉ=VALEUR, une par ligne)<textarea name="env" placeholder="MESA_EXTENSION_MAX_YEAR=2003"></textarea></label>
+    <div class="submit"><button type="button" class="btn" onclick="dlgApp.close()">Annuler</button><button>Ajouter</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+let AUTH_TOKEN = new URLSearchParams(location.search).get('token') || '';
+const authHeaders = () => AUTH_TOKEN ? {'x-winlator-token': AUTH_TOKEN} : {};
+const api = async (url, method='GET', body) => {
+  const r = await fetch(url, {method, headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: body?JSON.stringify(body):undefined});
+  return r.json();
+};
+// Connexion par token : demandé une seule fois, posé en cookie par le serveur.
+async function ensureAuth(){
+  const probe = await fetch('/api/state', {headers: authHeaders()});
+  if (probe.status !== 401) return true;
+  const t = prompt('Token d\'accès Winlator :');
+  if (!t) return false;
+  const lr = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token:t})});
+  if (!lr.ok) { toast('Token invalide.'); return false; }
+  location.reload();
+  return true;
+}
+const parseEnv = t => {
+  const o = {};
+  (t||'').split('\n').forEach(l=>{const i=l.indexOf('=');if(i>0)o[l.slice(0,i).trim()]=l.slice(i+1).trim();});
+  return o;
+};
+function toast(msg){const t=$('#toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;}
+
+let selectedRun = null;
+
+async function refresh(){
+  const st = await api('/api/state');
+  if(!st.ok){toast('Erreur: '+st.error);return;}
+  // Conteneurs
+  const cl = $('#containerList');
+  cl.innerHTML = st.containers.length ? '' : '<div class="empty">Aucun conteneur</div>';
+  for(const c of st.containers){
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<div><div class="name">${esc(c.name)}</div><div class="meta">${esc(c.id)} · ${esc(c.root)}</div></div>
+      <div class="actions"><button class="btn small stop" data-del-c="${esc(c.id)}">Suppr.</button></div>`;
+    cl.appendChild(d);
+  }
+  // Select conteneur du formulaire app
+  const sel=$('#formApp [name=containerId]');
+  sel.innerHTML='<option value="">— aucun —</option>'+st.containers.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  // Applications
+  const al=$('#appList');
+  al.innerHTML = st.apps.length ? '' : '<div class="empty">Aucune application</div>';
+  const cname=id=>(st.containers.find(c=>c.id===id)||{}).name||'';
+  for(const a of st.apps){
+    const running=st.active.some(r=>r.appId===a.id);
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<div><div class="name">${esc(a.name)}</div><div class="meta">${esc(a.exePath)} ${a.containerId?'· 📦 '+esc(cname(a.containerId)):''}</div></div>
+      <div class="actions">
+        ${running?'<span class="badge run">● actif</span>':''}
+        <button class="btn small play" data-run="${esc(a.id)}">▶ Lancer</button>
+        <button class="btn small" data-runw="${esc(a.id)}" title="Forcer via Wine">🍷</button>
+        <button class="btn small stop" data-del-a="${esc(a.id)}">✕</button>
+      </div>`;
+    al.appendChild(d);
+  }
+  // Exécutions actives
+  const rl=$('#runList');
+  rl.innerHTML = st.active.length ? '' : '<div class="empty">Rien en cours</div>';
+  for(const r of st.active){
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<div><div class="name">${esc(r.app)}</div><div class="meta">${esc(r.runId)} · pid ${r.pid}</div></div>
+      <div class="actions"><button class="btn small" data-log="${esc(r.runId)}">Journal</button>
+      <button class="btn small stop" data-stop="${esc(r.runId)}">Arrêter</button></div>`;
+    rl.appendChild(d);
+  }
+  // Historique récent
+  if(st.runs.length){
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<div class="meta">Dernière : ${esc(st.runs[0].app)} → code ${st.runs[0].exitCode??'?'}</div>`;
+    rl.appendChild(d);
+  }
+}
+
+document.addEventListener('click', async e=>{
+  const t=e.target;
+  if(t.dataset.run){const r=await api('/api/apps/'+t.dataset.run+'/run','POST');r.ok?toast('Lancé ✓'):toast('Erreur: '+r.error);refresh();}
+  if(t.dataset.runw){const r=await api('/api/apps/'+t.dataset.runw+'/run-wine','POST');r.ok?toast('Lancé via Wine ✓'):toast('Erreur: '+r.error);refresh();}
+  if(t.dataset.stop){await api('/api/runs/'+t.dataset.stop+'/stop','POST');refresh();}
+  if(t.dataset.log){selectedRun=t.dataset.log;$('#logTitle').textContent='— '+selectedRun;loadLog();}
+  if(t.dataset.delA){
+    if(confirm('Supprimer cette application ?')){await api('/api/apps/'+t.dataset.delA,'DELETE');refresh();}
+  }
+  if(t.dataset.delC){
+    if(confirm('Supprimer ce conteneur ?')){const r=await api('/api/containers/'+t.dataset.delC,'DELETE');r.ok||toast(r.error);refresh();}
+  }
+});
+
+async function loadLog(){
+  if(!selectedRun)return;
+  const r=await api('/api/runs/'+selectedRun+'/log');
+  const el=$('#log');const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-30;
+  el.textContent=r.log||'(vide)';
+  if(atBottom)el.scrollTop=el.scrollHeight;
+}
+setInterval(loadLog,1500);
+setInterval(refresh,4000);
+
+$('#btnNewContainer').onclick=()=>dlgContainer.showModal();
+$('#btnNewApp').onclick=()=>dlgApp.showModal();
+$('#formContainer').onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target);
+  const r=await api('/api/containers','POST',{
+    name:f.get('name'),wineBin:f.get('wineBin'),env:parseEnv(f.get('env')),
+  });
+  r.ok?toast('Conteneur créé ✓'):toast(r.error);
+  dlgContainer.close();e.target.reset();refresh();
+};
+$('#btnVnc').onclick=async ()=>{
+  const r=await api('/api/vnc-info');
+  if(!r.ok||!r.enabled){toast('Écran distant désactivé (VNC_ENABLED=1 requis).');return;}
+  window.open(r.url+(AUTH_TOKEN?'&token='+encodeURIComponent(AUTH_TOKEN):''),'_blank');
+};
+
+$('#formApp').onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target);
+  let exePath=f.get('exePath');
+  const fileInput=e.target.querySelector('input[name=file]');
+  if(fileInput&&fileInput.files&&fileInput.files[0]){
+    const file=fileInput.files[0];
+    toast('Envoi de '+file.name+'…');
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    let bin='';const chunk=0x8000;
+    for(let i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+    const up=await api('/api/upload','POST',{name:file.name,data:btoa(bin)});
+    if(!up.ok){toast('Upload: '+up.error);return;}
+    exePath=up.path;
+  }
+  if(!exePath){toast('Choisissez un fichier ou indiquez un chemin.');return;}
+  const r=await api('/api/apps','POST',{
+    name:f.get('name'),exePath,args:f.get('args'),
+    containerId:f.get('containerId')||null,env:parseEnv(f.get('env')),
+  });
+  r.ok?toast('Application ajoutée ✓'):toast(r.error);
+  dlgApp.close();e.target.reset();refresh();
+};
+
+(async()=>{ if(await ensureAuth()) refresh(); })();
+</script>
+</body>
+</html>
