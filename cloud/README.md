@@ -20,7 +20,22 @@ Navigateur ──HTTPS──────────► Render (port unique)
 | `render.yaml` | Blueprint : build Docker, token auto, disque persistant 1 Go |
 | `.dockerignore` | Exclut `data/`, `tools/`, lanceurs Windows du contexte |
 
-## Déployer en 4 étapes
+## 🥇 Déploiement gratuit sur Oracle Cloud (ARM Ampere A1)
+
+Le seul VPS « toujours gratuit » qui tient ce projet (2 vCPU, **12 Go RAM**).
+
+1. Crée un compte sur [oracle.com/cloud/free](https://www.oracle.com/cloud/free/) (CB demandée, pas débitée) et crée une instance **Ampere A1** (2 OCPU / 12 Go) sous **Ubuntu 22.04/24.04** — ouvre les ports 22 et 8799 dans la Security List.
+2. Connecte-toi en SSH puis :
+   ```bash
+   git clone https://github.com/LOKOSSOU-Gith/Wine.git /tmp/wine
+   sudo bash /tmp/wine/cloud/install-oracle-arm.sh
+   ```
+   Le script installe Node 22, Xvfb, x11vnc, **Box64 v0.4.4** (couche x86→ARM de Winlator) et **Wine 11.18** (Kron4ek), génère un token et crée les services systemd.
+3. Accès : `http://<IP-publique>:8799` (token affiché à la fin de l'installation, aussi dans `/opt/winlator-pc/.env`).
+
+Alternative conteneur : `docker build -f cloud/Dockerfile.arm64 -t winlator-pc:arm64 .`
+
+## Déployer sur Render (payant, 7 $/mois)
 
 1. **Pousse** le dossier `pc-edition` dans un dépôt Git (GitHub/GitLab).
 2. Sur Render : **New → Blueprint**, sélectionne le dépôt — le `render.yaml` est détecté.

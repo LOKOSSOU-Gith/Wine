@@ -1,0 +1,49 @@
+# Winlator PC Edition — image ARM64 (Oracle Ampere A1, Raspberry Pi 5, …)
+# Pile Winlator complète : Box64 (x86→ARM) + Wine x86_64 (Kron4ek).
+# Build : docker build -f cloud/Dockerfile.arm64 -t winlator-pc:arm64 .
+FROM --platform=linux/arm64 debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    WINLATOR_PC_PORT=8799 \
+    WINLATOR_HOST=0.0.0.0 \
+    VNC_ENABLED=1 \
+    VNC_DISPLAY=:99 \
+    VNC_PORT=5900 \
+    WINE_VER=11.18
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl xz-utils git cmake build-essential python3 \
+      nodejs npm \
+      xvfb x11-utils xauth x11vnc xdotool \
+      libasound2 fonts-wine \
+      procps tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Box64 v0.4.4 (émulation x86_64 sur ARM, comme Winlator) ---
+RUN git clone --depth 1 --branch v0.4.4 https://github.com/ptitSeb/box64 /tmp/box64 \
+    && cmake -S /tmp/box64 -B /tmp/box64/build -DARM_DYNAREC=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    && cmake --build /tmp/box64/build -j"$(nproc)" \
+    && cmake --install /tmp/box64/build \
+    && rm -rf /tmp/box64
+
+# --- Wine x86_64 11.18 (build Kron4ek, exécuté via Box64) ---
+RUN curl -fL -o /tmp/wine.tar.xz \
+      https://github.com/Kron4ek/Wine-Builds/releases/download/11.18/wine-11.18-amd64.tar.xz \
+    && mkdir -p /opt/wine \
+    && tar -xJf /tmp/wine.tar.xz -C /opt/wine --strip-components=1 \
+    && rm /tmp/wine.tar.xz
+# Wrappers : dans un conteneur, binfmt_misc se règle sur l'hôte — on passe
+# donc explicitement par box64 pour tous les binaires Wine x86_64.
+RUN for w in wine wineboot wineserver winecfg regsvr32 msiexec; do \
+      printf '#!/bin/sh\nexec box64 /opt/wine/bin/%s "$@"\n' "$w" > /usr/local/bin/$w \
+      && chmod +x /usr/local/bin/$w; done \
+    && box64 /opt/wine/bin/wine --version
+
+WORKDIR /app
+COPY . /app/
+RUN git clone --depth 1 https://github.com/novnc/noVNC.git /app/tools/noVNC \
+    && chmod +x /app/cloud/start-cloud.sh
+
+EXPOSE 8799
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/app/cloud/start-cloud.sh"]
